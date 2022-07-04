@@ -3,29 +3,13 @@
 #include "printf.h"
 
 #define BUFFER_SIZE 1024
-#define CONVERT_FNS_SIZE 5
-
-typedef int (*convert_fn)(va_list *ap);
-
-// Map conversion specifier with their functions
-typedef struct {
-    char c;
-    convert_fn fn;
-} convert_fn_table_t;
 
 int print_buffer(void);
-int print_str(va_list *ap);
-int print_char(va_list *ap);
-int print_decimal(va_list *ap);
-convert_fn get_func(char c);
-
-convert_fn_table_t convert_fn_table[CONVERT_FNS_SIZE] = {
-    {'s', print_str},
-    {'c', print_char},
-    {'i', print_decimal},
-    {'d', print_decimal},
-    {'l', print_decimal}
-};
+int print_buffer_if_full(void);
+int print_str(const char * str);
+int print_char(char c);
+int print_decimal(long n);
+int print_conversion(const char **format_p, va_list *ap, int char_len);
 
 char buffer[BUFFER_SIZE];
 int buffer_index = 0;
@@ -37,56 +21,71 @@ int myprintf(const char *format, ...) {
 
     int i = 0;
     int status = 0;
-    int in_conversion = 0;
+    buffer[i] = '\0';
 
     while (*format) {
-        if (in_conversion) {
-            convert_fn fn = get_func(*format);
-            if (fn != NULL) {
-                int res = fn(&ap);
+        switch (*format) {
+            case '%':;
+                int res = print_conversion(&format, &ap, i);
                 if (res < 0) {
                     return res;
                 }
+
                 i += res;
-                in_conversion = 0;
-            }
-            else {
-                // TODO: Print with %
+                break;
+            default:
                 buffer[buffer_index++] = *format;
                 buffer[buffer_index] = '\0';
                 i++;
-            }
-        }
-        else if (*format == '%') {
-            in_conversion = 1;
-        }
-        else {
-            buffer[buffer_index++] = *format;
-            buffer[buffer_index] = '\0';
-            i++;
+                format++;
         }
 
-        // Flush buffer to screen when full
-        if (buffer_index + 1 == BUFFER_SIZE) {
-            status = print_buffer();
-            if (status < 0) {
-                return status;
-            }
-        }
-
-        format++;
-    }
-
-    va_end(ap);
-
-    if (buffer_index > 0) {
-        status = print_buffer();
+        status = print_buffer_if_full();
         if (status < 0) {
             return status;
         }
     }
 
+    va_end(ap);
+
+    status = print_buffer();
+    if (status < 0) {
+        return status;
+    }
+
     return i;
+}
+
+int print_conversion(const char **format_p, va_list *ap, int char_len) {
+    (*format_p)++; // Skip % character
+
+    int res = 0;
+    switch (**format_p) {
+        case 's':
+            res = print_str(va_arg(*ap, const char*));
+            break;
+        case 'c':
+            res = print_char(va_arg(*ap, int));
+            break;
+        case 'd':
+        case 'i':
+            res = print_decimal(va_arg(*ap, long));
+            break;
+        case '%':
+            print_char('%');
+            res = 1;
+        case 'n':
+            print_decimal(char_len);
+            res = 1;
+        default:
+            print_char('%');
+            print_buffer_if_full();
+            print_char(**format_p);
+            res = 2;
+    }
+
+    (*format_p)++;
+    return res;
 }
 
 int print_buffer(void) {
@@ -104,24 +103,29 @@ int print_buffer(void) {
     return status;
 }
 
+int print_buffer_if_full(void) {
+    if (buffer_index + 1 == BUFFER_SIZE) {
+        return print_buffer();
+    }
+
+    return 0;
+}
+
 /*
   Print string to buffer and clear buffer if full
   Returns number of chars printed or a negative number if an error occurs
 */
-int print_str(va_list *ap) {
+int print_str(const char * str) {
     int status = 0;
     int i = 0;
-    const char *str = va_arg(*ap, const char*);
 
     while (*str) {
         buffer[buffer_index++] = *str;
         buffer[buffer_index] = '\0';
 
-        if (buffer_index + 1 == BUFFER_SIZE) {
-            status = print_buffer();
-            if (status < 0) {
-                return status;
-            }
+        status = print_buffer_if_full();
+        if (status < 0) {
+            return status;
         }
         i++;
         str++;
@@ -134,8 +138,8 @@ int print_str(va_list *ap) {
   Print char to buffer
   Returns number of chars printed (1)
 */
-int print_char(va_list *ap) {
-    buffer[buffer_index++] = va_arg(*ap, int);
+int print_char(char c) {
+    buffer[buffer_index++] = c;
     buffer[buffer_index] = '\0';
     return 1;
 }
@@ -145,9 +149,7 @@ int print_char(va_list *ap) {
   clear buffer to screen if full.
   Returns number of chars printed to screen
 */
-int print_decimal(va_list *ap) {
-    long n = va_arg(*ap, long);
-
+int print_decimal(long n) {
     // Store result here to reverse it
     char str[sizeof(long) * 8];
     int i = 0;
@@ -160,32 +162,18 @@ int print_decimal(va_list *ap) {
     i--;
     int len = i; // Number of chars to return
 
+    int status = 0;
     // Add number to buffer from reverse;
     while (i >= 0) {
         buffer[buffer_index++] = str[i];
         buffer[buffer_index] = '\0';
         i--;
 
-        // Clear buffer if full
-        if (buffer_index + 1 == BUFFER_SIZE) {
-            int status = print_buffer();
-            if (status < 0) {
-                return status;
-            }
+        status = print_buffer_if_full();
+        if (status < 0) {
+            return status;
         }
     }
 
     return len;
-}
-
-/*
-  Returns appropriate function for specifier
-*/
-convert_fn get_func(char c) {
-    for (int i = 0; i < CONVERT_FNS_SIZE; i++) {
-        if (convert_fn_table[i].c == c) {
-            return convert_fn_table[i].fn;
-        }
-    }
-    return NULL;
 }
