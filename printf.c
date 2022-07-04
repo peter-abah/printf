@@ -3,9 +3,9 @@
 #include "printf.h"
 
 #define BUFFER_SIZE 1024
-#define CONVERT_FNS_SIZE 1
+#define CONVERT_FNS_SIZE 2
 
-typedef int (*convert_fn)(va_list ap);
+typedef int (*convert_fn)(va_list *ap);
 
 // Map conversion specifier with their functions
 typedef struct {
@@ -14,11 +14,13 @@ typedef struct {
 } convert_fn_table_t;
 
 int print_buffer(void);
-int print_str(va_list ap);
+int print_str(va_list *ap);
+int print_char(va_list *ap);
 convert_fn get_func(char c);
 
 convert_fn_table_t convert_fn_table[CONVERT_FNS_SIZE] = {
-    {'s', print_str}
+    {'s', print_str},
+    {'c', print_char}
 };
 
 char buffer[BUFFER_SIZE];
@@ -37,7 +39,7 @@ int myprintf(const char *format, ...) {
         if (in_conversion) {
             convert_fn fn = get_func(*format);
             if (fn != NULL) {
-                int res = fn(ap);
+                int res = fn(&ap);
                 if (res < 0) {
                     return res;
                 }
@@ -102,10 +104,10 @@ int print_buffer(void) {
   Print string to buffer and clear buffer if full
   Returns number of chars printed or a negative number if an error occurs
 */
-int print_str(va_list ap) {
+int print_str(va_list *ap) {
     int status = 0;
     int i = 0;
-    const char *str = va_arg(ap, const char*);
+    const char *str = va_arg(*ap, const char*);
 
     while (*str) {
         buffer[buffer_index++] = *str;
@@ -122,6 +124,12 @@ int print_str(va_list ap) {
     }
 
     return i;
+}
+
+int print_char(va_list *ap) {
+    buffer[buffer_index++] = va_arg(*ap, int);
+    buffer[buffer_index] = '\0';
+    return 1;
 }
 
 /*
