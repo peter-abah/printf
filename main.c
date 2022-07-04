@@ -1,6 +1,6 @@
 #include "printf.h"
 
 int main(void) {
-    myprintf("Hey boy %s %c %c\n", "Yoo", 'y', '|');
+    myprintf("Hey boy %i %d %l\n", 10024, 10024, 67896541L);
     return 0;
 }

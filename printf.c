@@ -3,7 +3,7 @@
 #include "printf.h"
 
 #define BUFFER_SIZE 1024
-#define CONVERT_FNS_SIZE 2
+#define CONVERT_FNS_SIZE 5
 
 typedef int (*convert_fn)(va_list *ap);
 
@@ -16,11 +16,15 @@ typedef struct {
 int print_buffer(void);
 int print_str(va_list *ap);
 int print_char(va_list *ap);
+int print_decimal(va_list *ap);
 convert_fn get_func(char c);
 
 convert_fn_table_t convert_fn_table[CONVERT_FNS_SIZE] = {
     {'s', print_str},
-    {'c', print_char}
+    {'c', print_char},
+    {'i', print_decimal},
+    {'d', print_decimal},
+    {'l', print_decimal}
 };
 
 char buffer[BUFFER_SIZE];
@@ -126,10 +130,52 @@ int print_str(va_list *ap) {
     return i;
 }
 
+/*
+  Print char to buffer
+  Returns number of chars printed (1)
+*/
 int print_char(va_list *ap) {
     buffer[buffer_index++] = va_arg(*ap, int);
     buffer[buffer_index] = '\0';
     return 1;
+}
+
+/*
+  Prints int, short int and long int to buffer and
+  clear buffer to screen if full.
+  Returns number of chars printed to screen
+*/
+int print_decimal(va_list *ap) {
+    long n = va_arg(*ap, long);
+
+    // Store result here to reverse it
+    char str[sizeof(long) * 8];
+    int i = 0;
+
+    while (n) {
+        str[i++] = (n % 10) + '0';
+        n /= 10;
+    }
+
+    i--;
+    int len = i; // Number of chars to return
+
+    // Add number to buffer from reverse;
+    while (i >= 0) {
+        buffer[buffer_index++] = str[i];
+        buffer[buffer_index] = '\0';
+        i--;
+
+        // Clear buffer if full
+        if (buffer_index + 1 == BUFFER_SIZE) {
+            int status = print_buffer();
+            if (status < 0) {
+                return status;
+            }
+        }
+    }
+
+    return len;
 }
 
 /*
