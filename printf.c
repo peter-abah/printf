@@ -1,17 +1,11 @@
 #include <stdarg.h>
 #include <stdio.h>
-
+#include "printf.h"
 #define BUFFER_SIZE 1024
 
 char buffer[BUFFER_SIZE];
 
-int myprintf(const char *format, ...);
 int print_buffer(void);
-
-int main(void) {
-    myprintf("Hey boy %s \n", "het");
-    return 0;
-}
 
 // Custom implementation of printf
 int myprintf(const char *format, ...) {
@@ -38,6 +32,8 @@ int myprintf(const char *format, ...) {
 
         format++;
     }
+
+    va_end(ap);
 
     if (buffer_index > 0) {
         status = print_buffer();
