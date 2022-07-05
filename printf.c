@@ -4,11 +4,15 @@
 
 #define BUFFER_SIZE 1024
 
+// Uooer bound of number of digits in a long
+#define DIGITS_IN_LONG  3 * sizeof(long)
+
 int print_buffer(void);
 int print_buffer_if_full(void);
 int print_str(const char * str);
 int print_char(char c);
 int print_decimal(long n);
+int print_hex(unsigned long n);
 int print_conversion(const char **format_p, va_list *ap, int char_len);
 
 char buffer[BUFFER_SIZE];
@@ -30,7 +34,6 @@ int myprintf(const char *format, ...) {
                 if (res < 0) {
                     return res;
                 }
-
                 i += res;
                 break;
             default:
@@ -71,12 +74,17 @@ int print_conversion(const char **format_p, va_list *ap, int char_len) {
         case 'i':
             res = print_decimal(va_arg(*ap, long));
             break;
+        case 'x':
+            res = print_hex(va_arg(*ap, unsigned long));
+            break;
         case '%':
             print_char('%');
             res = 1;
+            break;
         case 'n':
             print_decimal(char_len);
             res = 1;
+            break;
         default:
             print_char('%');
             print_buffer_if_full();
@@ -151,18 +159,82 @@ int print_char(char c) {
 */
 int print_decimal(long n) {
     // Store result here to reverse it
-    char str[sizeof(long) * 8];
+    char str[DIGITS_IN_LONG + 2];
     int i = 0;
+    int status = 0;
+
+    // Add sign
+    if (n < 0) {
+        str[i++] = '-';
+        n = -n;
+    }
 
     while (n) {
         str[i++] = (n % 10) + '0';
         n /= 10;
     }
 
-    i--;
     int len = i; // Number of chars to return
+    i--;
+    // Add number to buffer from reverse;
+    while (i >= 0) {
+        buffer[buffer_index++] = str[i];
+        buffer[buffer_index] = '\0';
+        i--;
 
+        status = print_buffer_if_full();
+        if (status < 0) {
+            return status;
+        }
+    }
+
+    return len;
+}
+
+int print_unsigned_decimal(unsigned long n) {
+    // Store result here to reverse it
+    char str[DIGITS_IN_LONG + 2]; // Add 2 for sign and null character
+    int i = 0;
     int status = 0;
+
+    while (n) {
+        str[i++] = (n % 10) + '0';
+        n /= 10;
+    }
+
+    int len = i; // Number of chars to return
+    i--;
+    // Add number to buffer from reverse;
+    while (i >= 0) {
+        buffer[buffer_index++] = str[i];
+        buffer[buffer_index] = '\0';
+        i--;
+
+        status = print_buffer_if_full();
+        if (status < 0) {
+            return status;
+        }
+    }
+
+    return len;
+}
+
+int print_hex(unsigned long n) {
+    // Store result here to reverse it
+    char str[sizeof(long) * 2]; // One hex digit is 4 bits
+    int i = 0;
+    int status = 0;
+
+    while (n) {
+        int d = (n % 16);
+        char c = (d < 10) ? d + '0' : d - 10 + 'a';
+        str[i++] = c;
+        n /= 16;
+    }
+
+    int len = i; // Number of chars to return
+    i--;
+
     // Add number to buffer from reverse;
     while (i >= 0) {
         buffer[buffer_index++] = str[i];
