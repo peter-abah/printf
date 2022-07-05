@@ -1,17 +1,17 @@
+#include <math.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include "printf.h"
 
 #define BUFFER_SIZE 1024
 
-// Uooer bound of number of digits in a long
-#define DIGITS_IN_LONG  3 * sizeof(long)
-
 int print_buffer(void);
 int print_buffer_if_full(void);
 int print_str(const char * str);
 int print_char(char c);
-int print_decimal(long n);
+int print_long(long n);
+int print_unsigned_long(unsigned long n, int base);
 int print_hex(unsigned long n);
 int print_conversion(const char **format_p, va_list *ap, int char_len);
 
@@ -72,17 +72,23 @@ int print_conversion(const char **format_p, va_list *ap, int char_len) {
             break;
         case 'd':
         case 'i':
-            res = print_decimal(va_arg(*ap, long));
+            res = print_long(va_arg(*ap, long));
+            break;
+        case 'o':
+            res = print_unsigned_long(va_arg(*ap, unsigned long), 8);
+            break;
+        case 'u':
+            res = print_unsigned_long(va_arg(*ap, unsigned long), 10);
             break;
         case 'x':
-            res = print_hex(va_arg(*ap, unsigned long));
+            res = print_unsigned_long(va_arg(*ap, unsigned long), 16);
             break;
         case '%':
             print_char('%');
             res = 1;
             break;
         case 'n':
-            print_decimal(char_len);
+            print_long(char_len);
             res = 1;
             break;
         default:
@@ -153,13 +159,13 @@ int print_char(char c) {
 }
 
 /*
-  Prints int, short int and long int to buffer and
-  clear buffer to screen if full.
+  Prints long int to buffer and clear buffer to screen if full.
   Returns number of chars printed to screen
 */
-int print_decimal(long n) {
+int print_long(long n) {
     // Store result here to reverse it
-    char str[DIGITS_IN_LONG + 2];
+    int digits_length = ceil(log(LONG_MAX) / log(10));
+    char str[digits_length + 2];
     int i = 0;
     int status = 0;
 
@@ -176,6 +182,7 @@ int print_decimal(long n) {
 
     int len = i; // Number of chars to return
     i--;
+
     // Add number to buffer from reverse;
     while (i >= 0) {
         buffer[buffer_index++] = str[i];
@@ -191,45 +198,19 @@ int print_decimal(long n) {
     return len;
 }
 
-int print_unsigned_decimal(unsigned long n) {
+int print_unsigned_long(unsigned long n, int base) {
     // Store result here to reverse it
-    char str[DIGITS_IN_LONG + 2]; // Add 2 for sign and null character
+    int digits_length = ceil(log(ULONG_MAX) / log(base));
+    char str[digits_length + 1]; // Add 1 for null character
+
     int i = 0;
     int status = 0;
 
     while (n) {
-        str[i++] = (n % 10) + '0';
-        n /= 10;
-    }
-
-    int len = i; // Number of chars to return
-    i--;
-    // Add number to buffer from reverse;
-    while (i >= 0) {
-        buffer[buffer_index++] = str[i];
-        buffer[buffer_index] = '\0';
-        i--;
-
-        status = print_buffer_if_full();
-        if (status < 0) {
-            return status;
-        }
-    }
-
-    return len;
-}
-
-int print_hex(unsigned long n) {
-    // Store result here to reverse it
-    char str[sizeof(long) * 2]; // One hex digit is 4 bits
-    int i = 0;
-    int status = 0;
-
-    while (n) {
-        int d = (n % 16);
+        int d = (n % base);
         char c = (d < 10) ? d + '0' : d - 10 + 'a';
         str[i++] = c;
-        n /= 16;
+        n /= base;
     }
 
     int len = i; // Number of chars to return

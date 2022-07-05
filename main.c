@@ -1,6 +1,7 @@
+#include <limits.h>
 #include "printf.h"
 
 int main(void) {
-    myprintf("Hey boy %x %d %l %% %n\n", -1, 10024, 67896541L);
+    myprintf("Hey boy %o %i %x %u %% %n\n", ULONG_MAX, LONG_MAX, ULONG_MAX, ULONG_MAX);
     return 0;
 }

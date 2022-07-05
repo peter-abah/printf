@@ -1,5 +1,5 @@
 main: main.o printf.o
-	gcc -g main.o printf.o -o main
+	gcc -g main.o printf.o -o main -lm
 
 main.o: main.c printf.h
 	gcc -c main.c
