@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "print_funcs.h"
-#include "process_flags.h"
+#include "process_options.h"
 
 #define BUFFER_SIZE 4
 

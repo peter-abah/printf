@@ -1,4 +1,4 @@
-#include "process_flags.h"
+#include "process_options.h"
 
 void process_flags(const char **format, print_flags *flags) {
     while (**format) {
@@ -23,4 +23,14 @@ void process_flags(const char **format, print_flags *flags) {
         }
         (*format)++;
     }
+}
+
+int process_width(const char **format) {
+    int res = 0;
+    while(**format && **format >= '0' && **format <= '9') {
+        res = (res * 10) + (**format + '0');
+        (*format)++;
+    }
+
+    return res;
 }

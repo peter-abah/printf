@@ -1,5 +1,5 @@
-#ifndef PRINT_FLAGS_H
-#define PRINT_FLAGS_H
+#ifndef PROCESS_OPTIONS_H
+#define PROCESS_OPTIONS_H
 
 typedef struct {
     int left_adjust;
@@ -11,5 +11,5 @@ typedef struct {
 } print_flags;
 
 void process_flags(const char **format, print_flags *flags);
-
+int process_width(const char **format);
 #endif
