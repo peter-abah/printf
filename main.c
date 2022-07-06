@@ -2,6 +2,6 @@
 #include "printf.h"
 
 int main(void) {
-    myprintf("Hey boy %o %i %x %u %% %n\n", ULONG_MAX, LONG_MAX, ULONG_MAX, ULONG_MAX);
+    myprintf("Hey boy |%#d| +o %#o %#X %u %% %n\n", INT_MIN, LONG_MAX, ULONG_MAX, ULONG_MAX);
     return 0;
 }

@@ -21,14 +21,13 @@ int myprintf(const char *format, ...) {
                 i += res;
                 break;
             default:
-                print_char(*format);
+                status = print_char(*format);
+                if (status < 0) {
+                    return status;
+                }
+
                 i++;
                 format++;
-        }
-
-        status = print_buffer_if_full();
-        if (status < 0) {
-            return status;
         }
     }
 
